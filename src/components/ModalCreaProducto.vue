@@ -5,8 +5,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="createProductModal">Crear Producto</h5>
-                    <button type="button" class="btn-close" @click="closeCreateProductModal"
-                        aria-label="Close"></button>
+                    <button type="button" class="btn-close" @click="closeCreateProductModal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="submitProductForm">
@@ -20,10 +19,10 @@
                                 <label for="productType" class="form-label">Tipo</label>
                                 <div class="input-group">
                                     <select class="form-control" id="productType" v-model="product.type" required>
-                                        <option value="hamburguesa">Hamburguesa</option>
-                                        <option value="condimentos">Condimentos</option>
-                                        <option value="bocadillos">Bocadillos</option>
-                                        <option value="bebidas">Bebidas</option>
+                                        <option value="burger">Hamburguesa</option>
+                                        <option value="condiments">Condimentos</option>
+                                        <option value="snacks">Bocadillos</option>
+                                        <option value="drinks">Bebidas</option>
                                     </select>
                                     <span class="input-group-text">
                                         <i class="bi bi-chevron-down"></i>
@@ -51,12 +50,12 @@
                                     <option value="false">No hay promoción</option>
                                 </select>
                             </div>
-                            <!-- Campo de descuento solo visible si hay promoción -->
-                            <div class="col-md-6" v-if="product.isPromotion === 'true'">
+
+                            <div class="col-md-6">
                                 <label for="productDiscount" class="form-label">Descuento (%)</label>
                                 <input type="number" class="form-control" id="productDiscount"
                                     v-model.number="product.discount" min="0" max="100" step="1" placeholder="Ej: 20">
-                                <!-- Mensaje de validación si el descuento no es válido -->
+
                                 <div v-if="product.discount < 0 || product.discount > 100" class="text-danger">
                                     El descuento debe estar entre 0 y 100.
                                 </div>
@@ -67,13 +66,13 @@
                                 <label for="productIngredients" class="form-label">Ingredientes (separados por
                                     coma)</label>
                                 <input type="text" class="form-control w-100" id="productIngredients"
-                                    v-model="product.ingredients" placeholder="Ej: Carne, Queso, Tomate" required>
+                                    v-model="product.ingredientsString" placeholder="Ej: Carne, Queso, Tomate" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estado</label>
                                 <select class="form-select" v-model="product.status">
-                                    <option value="true">A la venta</option>
-                                    <option value="false">Descontinuado</option>
+                                    <option value="active">A la venta</option>
+                                    <option value="discontinued">Descontinuado</option>
                                 </select>
                             </div>
                         </div>
@@ -85,7 +84,7 @@
                                 :disabled="isSubmitting">
                                 <span v-if="isSubmitting" class="spinner-border spinner-border-sm" role="status"
                                     aria-hidden="true"></span>
-                                {{ isSubmitting ? 'Creando...' : 'Crear Producto' }}
+                                {{ isSubmitting ? 'Creando producto...' : 'Crear Producto' }}
                             </button>
                             <button type="button" class="btn btn-secondary" @click="closeCreateProductModal">
                                 Cancelar
@@ -104,12 +103,22 @@ import Swal from 'sweetalert2';
 import eventBus from '../eventBus';
 
 export default {
-    props: ['showModal', 'newProduct'],
+    props: ['showModal'],
     data() {
         return {
             isSubmitting: false,
             submitError: false,
-            product: { ...this.newProduct },
+            product: {
+                name: '',
+                type: 'burger',
+                price: null,
+                image: '',
+                isPromotion: 'false',
+                discount: 0,
+                ingredientsString: '',
+                ingredients: [],
+                status: 'active'
+            }
         };
     },
     methods: {
@@ -119,8 +128,10 @@ export default {
         async submitProductForm() {
             this.isSubmitting = true;
             this.submitError = false;
+            this.product.ingredients = this.product.ingredientsString.split(',').map(ingredient => ingredient.trim());
+
             try {
-                const response = await axios.post('https://back-test-6b3e.onrender.com/api/product/', this.product);
+                const response = await axios.post('https://back-test-6b3e.onrender.com/api/product', this.product);
                 console.log('Producto creado:', response.data);
 
                 Swal.fire({
@@ -135,17 +146,7 @@ export default {
                     if (result.isConfirmed) {
                         eventBus.$emit('product-created');
                         this.closeCreateProductModal();
-
-                        this.product = {
-                            name: '',
-                            type: 'hamburguesa',
-                            price: null,
-                            image: '',
-                            isPromotion: false,
-                            discount: null,
-                            ingredients: '',
-                            status: true
-                        };
+                        window.location.reload();
                     }
                 });
                 this.isSubmitting = false;
@@ -162,7 +163,7 @@ export default {
                 this.submitError = true;
                 this.isSubmitting = false;
             }
-        },
-    },
+        }
+    }
 };
 </script>
